@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Wi-Fi Installation Planner</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    background:#eef6ff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    width:650px;
+    background:white;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 0 15px rgba(0,0,0,0.2);
+}
+
+h1{
+    text-align:center;
+    color:#1565c0;
+    margin-bottom:20px;
+}
+
+.select{
+    text-align:center;
+    margin:15px 0;
+}
+
+.select label{
+    margin:0 15px;
+    font-weight:bold;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:15px;
+    background:#1565c0;
+    color:white;
+    border:none;
+    border-radius:6px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0d47a1;
+}
+
+#result{
+    margin-top:25px;
+    background:#f8f9fa;
+    padding:15px;
+    border-radius:8px;
+    display:none;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+table th,table td{
+    border:1px solid #ccc;
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#1565c0;
+    color:white;
+}
+
+.total{
+    margin-top:15px;
+    font-size:18px;
+    text-align:center;
+    color:#1565c0;
+    font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📶 Campus Wi-Fi Installation Planner</h1>
+
+<div class="select">
+
+<label>
+<input type="radio" name="algo" value="kruskal" checked>
+Kruskal
+</label>
+
+<label>
+<input type="radio" name="algo" value="prim">
+Prim
+</label>
+
+</div>
+
+<button onclick="generateNetwork()">
+Generate Network
+</button>
+
+<div id="result">
+
+<h3>Selected Connections</h3>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Building 1</th>
+<th>Building 2</th>
+<th>Cable Length</th>
+
+</tr>
+
+</thead>
+
+<tbody id="tableBody">
+
+</tbody>
+
+</table>
+
+<div class="total" id="totalCost"></div>
+
+</div>
+
+</div>
+
+<script>
+
+// Buildings
+const buildings=[
+"Library",
+"Computer Lab",
+"Admin Block",
+"Hostel",
+"Canteen",
+"Auditorium",
+"Parking"
+];
+
+// Graph edges
+const edges=[
+{u:0,v:1,w:7},
+{u:0,v:3,w:5},
+{u:1,v:2,w:8},
+{u:1,v:3,w:9},
+{u:1,v:4,w:7},
+{u:2,v:4,w:5},
+{u:3,v:4,w:15},
+{u:3,v:5,w:6},
+{u:4,v:5,w:8},
+{u:4,v:6,w:9},
+{u:5,v:6,w:11}
+];
+
+// ---------- Union Find ----------
+
+class UnionFind{
+
+constructor(n){
+
+this.parent=[];
+this.rank=[];
+
+for(let i=0;i<n;i++){
+
+this.parent[i]=i;
+this.rank[i]=0;
+
+}
+
+}
+
+find(x){
+
+if(this.parent[x]!=x)
+this.parent[x]=this.find(this.parent[x]);
+
+return this.parent[x];
+
+}
+
+union(x,y){
+
+let rx=this.find(x);
+let ry=this.find(y);
+
+if(rx==ry)
+return false;
+
+if(this.rank[rx]<this.rank[ry]){
+
+let temp=rx;
+rx=ry;
+ry=temp;
+
+}
+
+this.parent[ry]=rx;
+
+if(this.rank[rx]==this.rank[ry])
+this.rank[rx]++;
+
+return true;
+
+}
+
+}// ---------- Kruskal ----------
+
+function kruskal(){
+
+let sorted=[...edges].sort((a,b)=>a.w-b.w);
+
+let uf=new UnionFind(buildings.length);
+
+let mst=[];
+let cost=0;
+
+for(let edge of sorted){
+
+if(uf.union(edge.u,edge.v)){
+
+mst.push(edge);
+
+cost+=edge.w;
+
+if(mst.length==buildings.length-1)
+break;
+
+}
+
+}
+
+return {mst,cost};
+
+}
+
+// ---------- Prim ----------
+
+function prim(){
+
+let n=buildings.length;
+
+let visited=new Array(n).fill(false);
+
+visited[0]=true;
+
+let mst=[];
+let cost=0;
+
+while(mst.length<n-1){
+
+let minEdge=null;
+
+for(let edge of edges){
+
+if(
+(visited[edge.u] && !visited[edge.v]) ||
+(visited[edge.v] && !visited[edge.u])
+){
+
+if(minEdge==null || edge.w<minEdge.w)
+minEdge=edge;
+
+}
+
+}
+
+if(minEdge==null)
+break;
+
+mst.push(minEdge);
+
+cost+=minEdge.w;
+
+visited[minEdge.u]=true;
+visited[minEdge.v]=true;
+
+}
+
+return {mst,cost};
+
+}
+
+// ---------- Display ----------
+
+function generateNetwork(){
+
+let algo=document.querySelector(
+'input[name="algo"]:checked'
+).value;
+
+let result;
+
+if(algo=="kruskal")
+result=kruskal();
+else
+result=prim();
+
+let body=document.getElementById("tableBody");
+
+body.innerHTML="";
+
+for(let edge of result.mst){
+
+body.innerHTML+=`
+<tr>
+<td>${buildings[edge.u]}</td>
+<td>${buildings[edge.v]}</td>
+<td>${edge.w} m</td>
+</tr>
+`;
+
+}
+
+document.getElementById("totalCost").innerHTML=
+`Algorithm : <b>${algo.toUpperCase()}</b><br>
+Total Cable Required : <b>${result.cost} meters</b>`;
+
+document.getElementById("result").style.display="block";
+
+}
+
+</script>
+
+</body>
+</html>

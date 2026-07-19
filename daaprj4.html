@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Navigation System</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    background:#eef5ff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    width:650px;
+    background:white;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 0 15px rgba(0,0,0,0.2);
+}
+
+h1{
+    text-align:center;
+    color:#1565c0;
+    margin-bottom:20px;
+}
+
+label{
+    display:block;
+    margin-top:15px;
+    font-weight:bold;
+}
+
+select{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-size:15px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:20px;
+    background:#1565c0;
+    color:white;
+    border:none;
+    border-radius:6px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0d47a1;
+}
+
+#result{
+    margin-top:25px;
+    background:#f8f9fa;
+    border-radius:8px;
+    padding:15px;
+    display:none;
+}
+
+.route{
+    font-size:18px;
+    text-align:center;
+    line-height:2;
+}
+
+.distance{
+    margin-top:20px;
+    text-align:center;
+    color:#1565c0;
+    font-size:20px;
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📍 Campus Navigation System</h1>
+
+<label>Current Location</label>
+
+<select id="source">
+<option value="0">Library</option>
+<option value="1">Computer Lab</option>
+<option value="2">Admin Block</option>
+<option value="3">Hostel</option>
+<option value="4">Canteen</option>
+<option value="5">Auditorium</option>
+</select>
+
+<label>Destination</label>
+
+<select id="destination">
+<option value="0">Library</option>
+<option value="1">Computer Lab</option>
+<option value="2">Admin Block</option>
+<option value="3">Hostel</option>
+<option value="4">Canteen</option>
+<option value="5">Auditorium</option>
+</select>
+
+<button onclick="findRoute()">
+Find Shortest Route
+</button>
+
+<div id="result">
+
+<div class="route" id="route"></div>
+
+<div class="distance" id="distance"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const places=[
+"Library",
+"Computer Lab",
+"Admin Block",
+"Hostel",
+"Canteen",
+"Auditorium"
+];
+
+const graph={
+0:[[1,4],[2,1]],
+1:[[0,4],[2,2],[3,1]],
+2:[[0,1],[1,2],[3,5]],
+3:[[1,1],[2,5],[4,3]],
+4:[[3,3],[5,2]],
+5:[[4,2]]
+};
+
+function dijkstra(source){
+
+let n=places.length;
+
+let dist=new Array(n).fill(Infinity);
+
+let prev=new Array(n).fill(null);
+
+let visited=new Array(n).fill(false);
+
+dist[source]=0;for(let count=0;count<n-1;count++){
+
+let u=-1;
+let min=Infinity;
+
+for(let i=0;i<n;i++){
+
+if(!visited[i] && dist[i]<min){
+
+min=dist[i];
+u=i;
+
+}
+
+}
+
+if(u==-1)
+break;
+
+visited[u]=true;
+
+for(let edge of graph[u]){
+
+let v=edge[0];
+let weight=edge[1];
+
+if(!visited[v] && dist[u]+weight<dist[v]){
+
+dist[v]=dist[u]+weight;
+prev[v]=u;
+
+}
+
+}
+
+}
+
+return {dist,prev};
+
+}
+
+function getPath(prev,source,destination){
+
+let path=[];
+
+let current=destination;
+
+while(current!=null){
+
+path.push(current);
+current=prev[current];
+
+}
+
+path.reverse();
+
+if(path[0]!=source)
+return [];
+
+return path;
+
+}
+
+function findRoute(){
+
+let source=parseInt(document.getElementById("source").value);
+
+let destination=parseInt(document.getElementById("destination").value);
+
+let result=dijkstra(source);
+
+let path=getPath(result.prev,source,destination);
+
+let routeDiv=document.getElementById("route");
+
+let distanceDiv=document.getElementById("distance");
+
+if(path.length==0){
+
+routeDiv.innerHTML="❌ No Route Available";
+
+distanceDiv.innerHTML="";
+
+}
+else{
+
+let routeText="";
+
+for(let i=0;i<path.length;i++){
+
+routeText+=places[path[i]];
+
+if(i!=path.length-1)
+routeText+="<br>⬇<br>";
+
+}
+
+routeDiv.innerHTML=routeText;
+
+distanceDiv.innerHTML=
+"Shortest Distance : <b>"+result.dist[destination]+" Minutes</b>";
+
+}
+
+document.getElementById("result").style.display="block";
+
+}
+
+</script>
+
+</body>
+</html>
